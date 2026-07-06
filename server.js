@@ -19,7 +19,7 @@ app.post('/pixel', async (req, res) => {
 
     const targetSize = parseInt(size) || 360;
 
-   // 1. Bild von Deezer runterladen
+    // 1. Bild von Deezer runterladen
     const response = await axios.get(url, { responseType: 'arraybuffer' });
     
     // 2. NUR NOCH RESIZE (Keine Sharp-Palette, die uns auf 16 Farben drosselt!)
@@ -29,34 +29,19 @@ app.post('/pixel', async (req, res) => {
       .raw()
       .toBuffer({ resolveWithObject: true });
 
-    const data = rawBuffer.data;
+    // Hier holen wir uns das Pixel-Array fehlerfrei heraus
+    const pixelArray = rawBuffer.data;
 
-    // 3. RGB-Buffer in Hex-Werte umwandeln (Bleibt gleich)
+    // 3. RGB-Buffer in Hex-Werte umwandeln
     const pixels = [];
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i].toString(16).padStart(2, '0').toUpperCase();
-      const g = data[i+1].toString(16).padStart(2, '0').toUpperCase();
-      const b = data[i+2].toString(16).padStart(2, '0').toUpperCase();
+    for (let i = 0; i < pixelArray.length; i += 4) {
+      const r = pixelArray[i].toString(16).padStart(2, '0').toUpperCase();
+      const g = pixelArray[i+1].toString(16).padStart(2, '0').toUpperCase();
+      const b = pixelArray[i+2].toString(16).padStart(2, '0').toUpperCase();
       pixels.push(`#${r}${g}${b}`);
     }
 
-    res.status(200).json({ pixels });
-
-    // 4. Unkomprimierte Pixel-Daten auslesen (Bleibt gleich, liest jetzt aber die echten 64 Farben)
-    const { data } = await sharp(quantizedBuffer)
-      .ensureAlpha()
-      .raw()
-      .toBuffer({ resolveWithObject: true });
-
-    // 5. RGB-Buffer in Hex-Werte umwandeln
-    const pixels = [];
-    for (let i = 0; i < data.length; i += 4) {
-      const r = data[i].toString(16).padStart(2, '0').toUpperCase();
-      const g = data[i+1].toString(16).padStart(2, '0').toUpperCase();
-      const b = data[i+2].toString(16).padStart(2, '0').toUpperCase();
-      pixels.push(`#${r}${g}${b}`);
-    }
-
+    // 4. Daten erfolgreich zurück an Roblox schicken
     res.status(200).json({ pixels });
 
   } catch (error) {
