@@ -13,31 +13,28 @@ app.get('/', (req, res) => {
 function getPerfect48Palette(rgbBuffer) {
   const colorCounts = {};
   
-  // 1. Farben leicht runden, um extrem ähnliche Nuancen zusammenzufassen (Unterdrückt graue Rausch-Pixel)
+  // 1. Farben im Bild zählen
   for (let i = 0; i < rgbBuffer.length; i += 4) {
-    // Wir runden die RGB-Werte auf 8er-Schritte ab (sorgt für klare Farbgruppen)
-    const r = Math.round(rgbBuffer[i] / 8) * 8;
-    const g = Math.round(rgbBuffer[i+1] / 8) * 8;
-    const b = Math.round(rgbBuffer[i+2] / 8) * 8;
+    const r = Math.round(rgbBuffer[i] / 4) * 4; 
+    const g = Math.round(rgbBuffer[i+1] / 4) * 4;
+    const b = Math.round(rgbBuffer[i+2] / 4) * 4;
     
     const hex = ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
     colorCounts[hex] = (colorCounts[hex] || 0) + 1;
   }
 
-  // 2. In Array umwandeln und nach Häufigkeit sortieren
   let sortedColors = Object.keys(colorCounts).map(hex => ({
     hex, 
     count: colorCounts[hex]
   })).sort((a, b) => b.count - a.count);
 
-  // 3. Diversitäts-Filter: Verhindern, dass die Palette nur aus 48 fast identischen Grautönen besteht
   const finalPalette = [];
-  const minColorDistance = 30; // Mindestabstand zwischen Farben, damit sie sich sichtlich unterscheiden
+  const minColorDistance = 25; 
 
+  // SCHRITT 1: Strenge Filterung nach kontrastreichen Farben
   for (const item of sortedColors) {
     if (finalPalette.length >= 48) break;
 
-    // Prüfen, ob die Farbe einer bereits gewählten Farbe zu ähnlich ist
     const r1 = parseInt(item.hex.slice(0,2), 16);
     const g1 = parseInt(item.hex.slice(2,4), 16);
     const b1 = parseInt(item.hex.slice(4,6), 16);
@@ -55,17 +52,19 @@ function getPerfect48Palette(rgbBuffer) {
       }
     }
 
-    // Wenn sie einzigartig genug ist, ab in die Palette!
     if (!isTooSimilar) {
       finalPalette.push(item.hex);
     }
   }
 
-  // Falls wir durch den Filter weniger als 48 Farben haben, füllen wir den Rest mit den nächstbesten auf
+  // SCHRITT 2: Dein "Auffüll-Plan"! 
+  // Wenn wir noch Platz haben, nehmen wir die nächsthäufigsten Farben,
+  // EGAL wie nah sie an den anderen dran sind. Hauptsache sie existieren im Bild!
   let fillIndex = 0;
   while (finalPalette.length < 48 && fillIndex < sortedColors.length) {
-    if (!finalPalette.includes(sortedColors[fillIndex].hex)) {
-      finalPalette.push(sortedColors[fillIndex].hex);
+    const backupColor = sortedColors[fillIndex].hex;
+    if (!finalPalette.includes(backupColor)) {
+      finalPalette.push(backupColor);
     }
     fillIndex++;
   }
