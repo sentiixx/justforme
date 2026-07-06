@@ -19,18 +19,22 @@ app.post('/pixel', async (req, res) => {
 
     const targetSize = parseInt(size) || 360;
 
-    // 1. Bild von Deezer herunterladen
+    // 1. Bild von Deezer runterladen
     const response = await axios.get(url, { responseType: 'arraybuffer' });
     
-    // 2. Mit Sharp verarbeiten: Skalieren + auf 48 Farben limitieren
-    const { data } = await sharp(response.data)
+    // 2. Farbreduzierung über PNG-Quantisierung (sehr stabil in Sharp)
+    const quantizedBuffer = await sharp(response.data)
       .resize(targetSize, targetSize, { fit: 'fill' })
-      .palette(48) // <- HIER PASSIERT DIE MAGIE: Reduziert das Bild auf maximal 48 Farben!
+      .png({ palette: true, colors: 48 }) // Konvertiert intern in 48-Farben-Palette
+      .toBuffer();
+
+    // 3. Jetzt die unkomprimierten Pixel-Daten (Raw RGB) aus dem fertigen Paletten-Bild holen
+    const { data } = await sharp(quantizedBuffer)
       .ensureAlpha()
       .raw()
       .toBuffer({ resolveWithObject: true });
 
-    // 3. RGB-Buffer in Hex-Werte für Roblox umwandeln
+    // 4. RGB-Buffer in Hex-Werte für Roblox umwandeln
     const pixels = [];
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i].toString(16).padStart(2, '0').toUpperCase();
