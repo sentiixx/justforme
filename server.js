@@ -19,22 +19,28 @@ app.post('/pixel', async (req, res) => {
 
     const targetSize = parseInt(size) || 360;
 
-    // 1. Bild von Deezer runterladen
+   // 1. Bild von Deezer runterladen
     const response = await axios.get(url, { responseType: 'arraybuffer' });
     
-    // 2. + 3. ERZWUNGENE 64-FARBEN-PALETTE
-    const quantizedBuffer = await sharp(response.data)
-      .resize(targetSize, targetSize, { 
-        fit: 'cover', // Verhindert Farb-Verschmelzung durch Verzerrung
-        position: 'center'
-      })
-      .png({ 
-        palette: true, 
-        colors: 64,          // Wir wollen 64 Farben!
-        dither: 0.5,         // Leicht erhöht, um Farbabstufungen künstlich zu erzwingen
-        distinct: true       // ZWINGT Sharp, so viele unterschiedliche Farben wie möglich zu nutzen!
-      })
-      .toBuffer();
+    // 2. NUR NOCH RESIZE (Keine Sharp-Palette, die uns auf 16 Farben drosselt!)
+    const rawBuffer = await sharp(response.data)
+      .resize(targetSize, targetSize, { fit: 'fill' })
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+
+    const data = rawBuffer.data;
+
+    // 3. RGB-Buffer in Hex-Werte umwandeln (Bleibt gleich)
+    const pixels = [];
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i].toString(16).padStart(2, '0').toUpperCase();
+      const g = data[i+1].toString(16).padStart(2, '0').toUpperCase();
+      const b = data[i+2].toString(16).padStart(2, '0').toUpperCase();
+      pixels.push(`#${r}${g}${b}`);
+    }
+
+    res.status(200).json({ pixels });
 
     // 4. Unkomprimierte Pixel-Daten auslesen (Bleibt gleich, liest jetzt aber die echten 64 Farben)
     const { data } = await sharp(quantizedBuffer)
