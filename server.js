@@ -29,7 +29,7 @@ app.post('/pixel', async (req, res) => {
       .resize(targetSize, targetSize, { fit: 'fill' })
       .png({ 
         palette: true, 
-        colors: 96,       // Zwingt Sharp auf exakt 48 Farben
+        colors: 192,       // Zwingt Sharp auf exakt 48 Farben
         dither: 1.0       // Aktiviert perfektes Dithering, damit Farbverläufe nicht matschig/grau werden
       })
       .toBuffer();
