@@ -22,10 +22,9 @@ app.post('/pixel', async (req, res) => {
     // 1. Bild von Deezer runterladen
     const response = await axios.get(url, { responseType: 'arraybuffer' });
     
-    // 2. Bild leicht im Kontrast anpassen, um Kanten hervorzuheben
+
     const preparedBuffer = await sharp(response.data)
       .resize(targetSize, targetSize, { fit: 'fill' })
-      .modulate({ brightness: 1.05, contrast: 1.2 }) // Erhöht den Kontrast für klare Farbgrenzen
       .toBuffer();
 
     // 3. PNG-Generierung OHNE DITHERING (dither: 0.0)
@@ -33,8 +32,8 @@ app.post('/pixel', async (req, res) => {
     const quantizedBuffer = await sharp(preparedBuffer)
       .png({ 
         palette: true, 
-        colors: 48, 
-        dither: 0.0 // 0.0 schaltet das grieselige Punkt-Raster komplett aus!
+        colors: 64, 
+        dither: 0.2 // 0.0 schaltet das grieselige Punkt-Raster komplett aus!
       })
       .toBuffer();
 
