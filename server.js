@@ -20,18 +20,19 @@ app.post('/pixel', async (req, res) => {
     const targetSize = parseInt(size) || 360;
 
     // 1. Bild von Deezer runterladen
-   // 1. Bild von Deezer runterladen
     const response = await axios.get(url, { responseType: 'arraybuffer' });
     
-    // 2. + 3. RESIZE & QUANTISIERUNG IN EINEM RUTSCH
-    // Wenn Sharp das Bild direkt bearbeitet und als PNG ausgibt, 
-    // greifen die 64 Farben garantiert!
+    // 2. + 3. ERZWUNGENE 64-FARBEN-PALETTE
     const quantizedBuffer = await sharp(response.data)
-      .resize(targetSize, targetSize, { fit: 'fill' })
+      .resize(targetSize, targetSize, { 
+        fit: 'cover', // Verhindert Farb-Verschmelzung durch Verzerrung
+        position: 'center'
+      })
       .png({ 
         palette: true, 
-        colors: 64,  // Jetzt erzwingt er die vollen 64 Farben
-        dither: 0.2  // Dein gewünschter Dithering-Wert
+        colors: 64,          // Wir wollen 64 Farben!
+        dither: 0.5,         // Leicht erhöht, um Farbabstufungen künstlich zu erzwingen
+        distinct: true       // ZWINGT Sharp, so viele unterschiedliche Farben wie möglich zu nutzen!
       })
       .toBuffer();
 
