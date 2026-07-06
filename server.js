@@ -22,21 +22,19 @@ app.post('/pixel', async (req, res) => {
     // 1. Bild von Deezer runterladen
     const response = await axios.get(url, { responseType: 'arraybuffer' });
     
-    // 2. Bildvorbereitung für bessere Erkennbarkeit im Zentrum:
-    // - .modulate: Erhöht leicht die Helligkeit und Sättigung
-    // - .sharpen: Macht wichtige Details wie Gesichter schärfer, damit sie nicht verschwinden
+    // 2. Bild leicht im Kontrast anpassen, um Kanten hervorzuheben
     const preparedBuffer = await sharp(response.data)
       .resize(targetSize, targetSize, { fit: 'fill' })
-      .modulate({ brightness: 1.2, saturation: 1.1 }) 
-      .sharpen({ sigma: 1.5, m1: 0.5, m2: 2.0 }) 
+      .modulate({ brightness: 1.05, contrast: 1.2 }) // Erhöht den Kontrast für klare Farbgrenzen
       .toBuffer();
 
-    // 3. Jetzt die harte 48-Farben-Palette mit Dithering (dither: 1.0 erzwingt feine Pixel-Mischung)
+    // 3. PNG-Generierung OHNE DITHERING (dither: 0.0)
+    // Das erzwingt harte, glatte Farbflächen wie in Bild 1!
     const quantizedBuffer = await sharp(preparedBuffer)
       .png({ 
         palette: true, 
         colors: 48, 
-        dither: 1.0 
+        dither: 0.0 // 0.0 schaltet das grieselige Punkt-Raster komplett aus!
       })
       .toBuffer();
 
